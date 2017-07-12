@@ -23,6 +23,7 @@ recursive_mod <- function (fn, alpha = 0.05,
     # Run modularity and save community file
     sg_fn_base <- paste0("subgraph", sgn)
     graph_fn <- file.path(paste0(sg_fn_base, ".dat"))
+    cat("modularity maximization for level", level, "subgraph", sgn, "\n")
     G <- graph.edgelist(as.matrix(read.table(graph_fn)), directed = FALSE)
     n <- length(V(G))
     if (mod_type == "louvain") {
@@ -57,7 +58,7 @@ recursive_mod <- function (fn, alpha = 0.05,
     # Assess comms and save (if needed)
     cbscores <- read.table(paste0(sg_fn_base, ".dat.table"), sep = "", 
                            header = FALSE)
-    which_write <- which(cbscores$V4 <= alpha)
+    which_write <- which(cbscores$V3 <= alpha)
     next_level_dir <- file.path("..", paste0("level", level + 1))
     if (!dir.exists(next_level_dir) && length(which_write) > 0)
       dir.create(next_level_dir)
@@ -80,13 +81,13 @@ recursive_mod <- function (fn, alpha = 0.05,
       system2(file.path(oldwd, compare_path, "compare"), 
               paste(paste("-f", file.path("..", graph_fn)), 
                     paste("-c", file.path("..", "background.dat")), 
-                    "-t 0.01"))
+                    "-t 0.01 -nobcore"))
       setwd("../")
       cbscores <- read.table(paste0(sg_fn_base, ".dat.table"), sep = "", 
                            header = FALSE)
       
       # If significant,
-      if (cbscores$V4 <= 0.05) {
+      if (cbscores$V3 <= 0.05) {
         
         # Add to comms and save
         comms <- c(comms, list(background))
@@ -101,7 +102,7 @@ recursive_mod <- function (fn, alpha = 0.05,
         system2(file.path(oldwd, compare_path, "compare"), 
                 paste(paste("-f", file.path("..", graph_fn)), 
                       paste("-c", file.path("..", comms_fn)), 
-                      "-t 0.01"))
+                      "-t 0.01 -nobcore"))
         setwd("../")
         
         # write the background subgraph
@@ -159,10 +160,14 @@ recursive_mod <- function (fn, alpha = 0.05,
         offset <- if (j > 1) {length(memships[[j - 1]])} else {0}
         membership[nonzeros] <- membership[nonzeros] + offset
       }
+      level_memships[[level]] <- membership
+      rm(membership)
     }
     
     level <- level + 1
 
   }
+  
+  return(level_memships)
 
 }
