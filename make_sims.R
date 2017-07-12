@@ -1,5 +1,8 @@
 source("netfuns.R")
 
+# Remake sims or just write scripts?
+remake_sims <- FALSE
+
 if (!dir.exists("sims"))
   dir.create("sims")
 
@@ -36,7 +39,7 @@ for (p in 1:length(ps)) {
     set.seed(as.numeric(readLines(seedfile)))
     Gp <- twocliq(ps[p], nC, 0.5)
     dat_fn <- paste0(i, ".dat")
-    write.table(get.edgelist(Gp), 
+    write.table(get.edgelist(Gp), sep = "\t",
                 file = file.path(curr_dir, dat_fn),
                 quote = FALSE, row.names = FALSE, col.names = FALSE)
     save(Gp, file = file.path(curr_dir, paste0(i, ".RData")))
