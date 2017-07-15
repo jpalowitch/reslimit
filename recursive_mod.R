@@ -17,6 +17,7 @@ recursive_mod <- function (fn, alpha = 0.05,
     unlink(mod_dir, recursive = TRUE)
   dir.create(mod_dir)
   
+################################################################################
   # Function to analyze subgraph
   level_run <- function (sgn, level) {
     
@@ -46,7 +47,7 @@ recursive_mod <- function (fn, alpha = 0.05,
       system2(file.path(oldwd, compare_path, "compare"), 
               paste(paste("-f", file.path("..", graph_fn)), 
                     paste("-c", file.path("..", comms_fn)), 
-                    "-t 0.01"))
+                    "-t 0.01 -nobcore -nobscore"))
       setwd("../")
       
     } else {
@@ -58,6 +59,7 @@ recursive_mod <- function (fn, alpha = 0.05,
     # Assess comms and save (if needed)
     cbscores <- read.table(paste0(sg_fn_base, ".dat.table"), sep = "", 
                            header = FALSE)
+    writeLines(as.character(cbscores$V3), con = "comm_cscores.txt")
     which_write <- which(cbscores$V3 <= alpha)
     next_level_dir <- file.path("..", paste0("level", level + 1))
     if (!dir.exists(next_level_dir) && length(which_write) > 0)
@@ -71,6 +73,9 @@ recursive_mod <- function (fn, alpha = 0.05,
                   quote = FALSE, row.names = FALSE, col.names = FALSE)
     }
     
+    # Making list of significant comms
+    sig_comms <- comms[which_write]
+    
     # Assess background (if non-trivial) and save
     background <- unlist(comms[-which_write])
     if (length(background) > 0 && length(background) < n) {
@@ -81,38 +86,26 @@ recursive_mod <- function (fn, alpha = 0.05,
       system2(file.path(oldwd, compare_path, "compare"), 
               paste(paste("-f", file.path("..", graph_fn)), 
                     paste("-c", file.path("..", "background.dat")), 
-                    "-t 0.01 -nobcore"))
+                    "-t 0.01 -nobcore -nobscore"))
       setwd("../")
       cbscores <- read.table(paste0(sg_fn_base, ".dat.table"), sep = "", 
                            header = FALSE)
+      writeLines(as.character(cbscores$V3), con = "bg_cscore.txt")
       
       # If significant,
       if (cbscores$V3 <= 0.05) {
         
-        # Add to comms and save
-        comms <- c(comms, list(background))
-        comms_text <- unlist(lapply(comms, paste, collapse = " "))
-        writeLines(comms_text, con = comms_fn)
-        which_write <- c(which_write, length(comms))
-        
-        # re-compute c-b-scores for future reading
-        signi_dir <- paste0(sg_fn_base, "_signi")
-        dir.create(signi_dir)
-        setwd(signi_dir)
-        system2(file.path(oldwd, compare_path, "compare"), 
-                paste(paste("-f", file.path("..", graph_fn)), 
-                      paste("-c", file.path("..", comms_fn)), 
-                      "-t 0.01 -nobcore"))
-        setwd("../")
-        
         # write the background subgraph
         cur_next_nsgs <- length(list.files(next_level_dir))
         next_sg_base <- paste0("subgraph", cur_next_nsgs + 1)
-        Gi <- delete.vertices(G, setdiff(1:n, comms[[length(comms)]]))
+        Gi <- delete.vertices(G, unlist(comms[which_write]))
         write.table(get.edgelist(Gi), sep = "\t",
                     file = file.path(next_level_dir, 
                                      paste0(next_sg_base, ".dat")),
                     quote = FALSE, row.names = FALSE, col.names = FALSE)
+        
+        # add to sig_comms
+        sig_comms <- c(sig_comms, list(background))
         
       }
         
@@ -120,11 +113,12 @@ recursive_mod <- function (fn, alpha = 0.05,
     
     # Creating membership vector
     membership <- numeric(n)
-    for (i in seq_along(which_write)) {membership[comms[which_write][[i]]] <- i}
+    for (i in seq_along(sig_comms)) {membership[sig_comms[[i]]] <- i}
     return(membership)
     
   }
   
+################################################################################
   # Level loop
   level <- 1
   level_memships <- list(NULL)
@@ -139,7 +133,7 @@ recursive_mod <- function (fn, alpha = 0.05,
     }
     oldwd <- setwd(level_dir)
     
-    # Running on subgraphs and 
+    # Running on subgraphs
     nsgs <- length(list.files())
     memships <- lapply(1:nsgs, level_run, level = level)
     
