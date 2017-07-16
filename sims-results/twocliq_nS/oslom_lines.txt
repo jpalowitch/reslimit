@@ -1,0 +1,45 @@
+cd sims/twocliq_nS/1
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/2
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/3
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/4
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/5
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/6
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/7
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/8
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
+cd sims/twocliq_nS/9
+./../../../OSLOM2/oslom_undir -uw -f 1.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 2.dat -singlet -fast
+./../../../OSLOM2/oslom_undir -uw -f 3.dat -singlet -fast
+cd ../../../
