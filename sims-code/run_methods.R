@@ -1,36 +1,33 @@
 source("recursive_mod.R")
+sim_res_dir <- readLines("sim_res_dir.txt")
+exper_names <- readLines(file.path(sim_res_dir, "exper_names.txt"))
+source("sims-code/netfuns.R")
 
 set.seed(12345)
-
-# twocliq with increasing nS
-rootdir <- "sims/twocliq_nS"
-ps <- round(50 * 3^(seq(0, 4, 0.5)))
-nsims <- 3
-
-
-for (p in 1:(length(ps) - 1)) {
   
-  # Setting directory
-  curr_dir <- file.path(rootdir, p)
-  if (!dir.exists(curr_dir))
-    dir.create(curr_dir)
+for (exper in exper_names) {
 
-  for (i in 1:nsims) {
+  # twocliq with increasing nS
+  rootdir <- file.path(sim_res_dir, exper)
+  load(file.path(sim_res_dir, paste0("pars_", exper, ".RData")))
+  
+  for (p in seq_along(ps)) {
     
-    # Setting seed
-    seedfile <- file.path(curr_dir, paste0(i, "_seed.txt"))
-    if (!file.exists(seedfile)) {
-      seedpi <- paste(sample(0:9, 9, replace = TRUE), collapse = "")
-      writeLines(seedpi, con = seedfile)
+    # Setting directory
+    curr_dir <- file.path(rootdir, p)
+    if (!dir.exists(curr_dir))
+      dir.create(curr_dir)
+  
+    for (i in 1:nsims) {
+      
+      # Making and saving data
+      dat_fn <- paste0(i, ".dat")
+      timer <- proc.time()[3]
+      results <- recursive_mod(file.path(curr_dir, dat_fn))
+      timer <- proc.time()[3] - timer
+      save(results, timer, file = file.path(curr_dir, paste0("rmod_results_", i, ".RData")))
+      
     }
-    
-    # Making and saving data
-    set.seed(as.numeric(readLines(seedfile)))
-    dat_fn <- paste0(i, ".dat")
-    timer <- proc.time()[3]
-    results <- recursive_mod(file.path(curr_dir, dat_fn))
-    timer <- proc.time()[3] - timer
-    save(results, timer, file = file.path(curr_dir, paste0("rmod_results_", i, ".RData")))
     
   }
   
