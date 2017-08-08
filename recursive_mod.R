@@ -77,7 +77,7 @@ recursive_mod <- function (fn, alpha = 0.05,
     sig_comms <- comms[which_write]
     
     # Assess background (if non-trivial) and save
-    background <- unlist(comms[-which_write])
+    background <- unlist(comms[setdiff(1:length(comms), which_write)])
     if (length(background) > 0 && length(background) < n) {
       
       # Getting significance of background

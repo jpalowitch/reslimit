@@ -3,9 +3,7 @@ exper_names <- readLines(file.path(sim_res_dir, "exper_names.txt"))
 source("sims-code/netfuns.R")
 
 # Remake sims or just write scripts?
-remake_sims <- FALSE
-oslom_exper_lines <- NULL
-
+remake_sims <- TRUE
 set.seed(12345)
 
 for (exper in exper_names) {
@@ -16,15 +14,12 @@ for (exper in exper_names) {
   
   load(file.path(sim_res_dir, paste0("pars_", exper, ".RData")))
   
-  oslom_lines <- NULL
-  
   for (p in 1:length(ps)) {
     
     # Setting directory
     curr_dir <- file.path(rootdir, p)
     if (!dir.exists(curr_dir))
       dir.create(curr_dir)
-    oslom_lines <- c(oslom_lines, paste("cd", curr_dir))
     
     for (i in 1:nsims) {
       
@@ -49,40 +44,33 @@ for (exper in exper_names) {
                       quote = FALSE, row.names = FALSE, col.names = FALSE)
           save(Gp, file = file.path(curr_dir, paste0(i, ".RData")))
         }
-        if (make_type == "system") {
+        if (make_type == "System") {
           oldwd <- setwd(curr_dir)
           eval(parse(text = make_code))
           setwd(oldwd)
         }
       
-        # Making truth
+        # Making truth in list format
         if (truth_type == "Manual") {
           comms <- eval(parse(text = truth_code))
-          truth_strings <- unlist(lapply(comms, paste, collapse = " "))
-          writeLines(truth_strings,
-                     con = file.path(curr_dir, paste0(i, "_truth.dat")))
         }
         if (truth_type == "LFR") {
-          
-          
+          comms <- read.table(file.path(curr_dir, "community_1.dat"),
+                              header = FALSE, sep = "\t")
+          comms <- lapply(1:max(comms$V2), function (i) {
+            return(comms$V1[comms$V2 == i])
+          })
         }
+        
+        # Saving truth list elements in lines of a dat file
+        truth_strings <- unlist(lapply(comms, paste, collapse = " "))
+        writeLines(truth_strings,
+                   con = file.path(curr_dir, paste0(i, "_truth.dat")))
       
       }
       
-      # Writing OSLOM lines
-      oslom_add <- paste("./../../../OSLOM2/oslom_undir -uw -f", 
-                         dat_fn, "-singlet", "-fast")
-      oslom_lines <- c(oslom_lines, oslom_add)
-      
     }
     
-    oslom_lines <- c(oslom_lines, paste("cd", "../../../"))
-    
   }
-
-  writeLines(oslom_lines, con = file.path(rootdir, "oslom_lines.txt"))
-  oslom_exper_lines <- c(oslom_exper_lines, paste("bash", file.path(rootdir, "oslom_lines.txt")))
   
 }
-
-writeLines(oslom_exper_lines, con = file.path(sim_res_dir, "oslom_exper_lines.txt"))

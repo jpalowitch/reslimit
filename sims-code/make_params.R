@@ -20,7 +20,7 @@ make_type <- "R_igraph"
 truth_code <- "list(1:ps[p], (ps[p] + 1):(ps[p] + extra_pars$nC),
                     (ps[p] + extra_pars$nC + 1):(ps[p] + 2 * extra_pars$nC))"
 truth_type <- "Manual"
-save(ps, pname, nsims, extra_pars, make_code, truth_code,
+save(ps, pname, nsims, extra_pars, make_code, make_type, truth_code, truth_type,
      file = file.path(sim_res_dir, paste0("pars_", exper_name, ".RData")))
 
 exper_names <- c(exper_names, exper_name)
