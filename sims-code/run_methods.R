@@ -8,7 +8,7 @@ set.seed(12345)
   
 for (exper in exper_names) {
 
-  # twocliq with increasing nS
+  # Loading/setting parameters
   rootdir <- file.path(sim_res_dir, exper)
   load(file.path(sim_res_dir, paste0("pars_", exper, ".RData")))
   

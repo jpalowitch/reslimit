@@ -1,34 +1,67 @@
-source("recursive_mod.R")
+sim_res_dir <- readLines("sim_res_dir.txt")
+exper_names <- readLines(file.path(sim_res_dir, "exper_names.txt"))
+mutual3 <- "./mutual3/mutual"
 
-set.seed(12345)
 
-# twocliq with increasing nS
-rootdir <- "sims/twocliq_nS"
-ps <- round(50 * 3^(seq(0, 4, 0.5)))
-nsims <- 3
 
-timers <- numeric(length(ps))
-
-for (p in 1:6) {
+for (exper in exper_names) {
   
-  # Setting directory
-  curr_dir <- file.path(rootdir, p)
-  if (!dir.exists(curr_dir))
-    dir.create(curr_dir)
-
-  for (i in 1:nsims) {
+  # Loading/setting parameters
+  rootdir <- file.path(sim_res_dir, exper)
+  load(file.path(sim_res_dir, paste0("pars_", exper, ".RData")))
+  
+  # Finding methNames
+  dummy_dir <- file.path(rootdir, 1)
+  fns <- list.files(dummy_dir)
+  methFiles <- fns[grepl("results", fns)]
+  methNames <- unique(sapply(methFiles, function (c) strsplit(c, "_")[[1]][1]))
+  rm(dummy_dir, fns, methFiles)
+  
+  # Making results matrices
+  timer_mat <- onmi_mat <- matrix(0, length(methNames), length(ps))
+  rownames(timer_mat) <- rownames(onmi_mat) <- methNames
+  
+  for (p in seq_along(ps)) {
     
-    # Setting seed
-    seedfile <- file.path(curr_dir, paste0(i, "_seed.txt"))
-    if (!file.exists(seedfile)) {
-      seedpi <- paste(sample(0:9, 9, replace = TRUE), collapse = "")
-      writeLines(seedpi, con = seedfile)
+    cat("experiment", exper, "p =", p, "\n")
+    
+    # Setting directory
+    curr_dir <- file.path(rootdir, p)
+
+    for (meth in methNames) {
+  
+      for (i in 1:nsims) {
+        
+        truth_fn <- file.path(curr_dir, paste0(i, "_truth.dat"))
+        res_rfn  <- file.path(curr_dir, paste0(meth, "_results_", i, ".RData"))
+        res_dfn  <- file.path(curr_dir, paste0(meth, "_results_", i, ".dat"))
+        mut_dfn  <- file.path(curr_dir, paste0(meth, "_onmi_", i, ".dat"))
+        
+        # Loading results and computing onmi
+        load(res_rfn)
+        if (length(results) > 0) {
+          comm_strings <- unlist(lapply(results, paste, collapse = " "))
+          writeLines(comm_strings, res_dfn)
+          system2(mutual3, c(res_dfn, truth_fn, mut_dfn))
+          onmi <- as.numeric(strsplit(readLines(mut_dfn), "\t")[[1]][2])
+        } else {
+          writeLines("", res_dfn)
+          onmi <- 0
+        }
+        
+        # Storing results
+        timer_mat[meth, p] <- timer_mat[meth, p] + timer / nsims
+        onmi_mat [meth, p] <- onmi_mat [meth, p] + onmi  / nsims
+        
+      }
+      
     }
     
-    # Loading results
-    load(file.path(curr_dir, "rmod_results.RData"))
-    timers[p] <- timers[p] + timer / nsims
-    
   }
+  
+  write.table(timer_mat, quote = FALSE, col.names = FALSE,
+              file = file.path(rootdir, "timer_mat.txt"))
+  write.table(onmi_mat, quote = FALSE, col.names = FALSE,
+  file = file.path(rootdir, "onmi_mat.txt"))
   
 }
