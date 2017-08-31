@@ -1,0 +1,37 @@
+rm -rf binary_networks
+rm -rf OSLOM2
+rm -rf mutual3
+rm -rf clustering_programs
+wget https://sites.google.com/site/andrealancichinetti/files/binary_networks.tar.gz
+tar -xvzf binary_networks.tar.gz
+rm binary_networks.tar.gz
+cd binary_networks
+make
+cd ../
+wget http://www.oslom.org/code/OSLOM2.tar.gz
+tar -xvzf OSLOM2.tar.gz
+rm OSLOM2.tar.gz
+cd OSLOM2
+chmod 744 compile_all.sh
+./compile_all.sh
+./
+cd ../
+wget https://sites.google.com/site/andrealancichinetti/mutual3.tar.gz
+tar -xvzf mutual3.tar.gz
+rm mutual3.tar.gz
+cd mutual3
+make
+cd ../
+wget https://sites.google.com/site/andrealancichinetti/clustering_programs.tar.gz
+tar -xvzf clustering_programs.tar.gz
+rm clustering_programs.tar.gz
+cd clustering_programs_5_2
+chmod 744 compile.sh
+./compile.sh
+
+Rscript sims-code/make_params.R
+Rscript sims-code/make_sims.R
+Rscript sims-code/run_methods.R
+Rscript sims-code/get_results.R
+Rscript sims-code/plot_results.R
+

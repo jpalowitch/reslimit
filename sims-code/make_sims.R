@@ -6,7 +6,7 @@ source("sims-code/netfuns.R")
 remake_sims <- TRUE
 set.seed(12345)
 
-for (exper in exper_names) {
+for (exper in exper_names[-1]) {
   
   rootdir <- file.path(sim_res_dir, exper)
   if (!dir.exists(rootdir))
@@ -46,7 +46,7 @@ for (exper in exper_names) {
         }
         if (make_type == "System") {
           oldwd <- setwd(curr_dir)
-          eval(parse(text = make_code))
+          sapply(make_code, function (c) eval(parse(text = c)))
           setwd(oldwd)
         }
       
@@ -55,10 +55,10 @@ for (exper in exper_names) {
           comms <- eval(parse(text = truth_code))
         }
         if (truth_type == "LFR") {
-          comms <- read.table(file.path(curr_dir, "community_1.dat"),
+          comms <- read.table(file.path(curr_dir, "community.dat"),
                               header = FALSE, sep = "\t")
-          comms <- lapply(1:max(comms$V2), function (i) {
-            return(comms$V1[comms$V2 == i])
+          comms <- lapply(1:max(comms$V2), function (j) {
+            return(comms$V1[comms$V2 == j])
           })
         }
         

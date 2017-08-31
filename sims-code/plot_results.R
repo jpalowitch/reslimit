@@ -4,7 +4,7 @@ library(reshape2)
 sim_res_dir <- readLines("sim_res_dir.txt")
 exper_names <- readLines(file.path(sim_res_dir, "exper_names.txt"))
 
-for (exper in exper_names) {
+for (exper in exper_names[-1]) {
   
   # Loading/setting parameters
   rootdir <- file.path(sim_res_dir, exper)

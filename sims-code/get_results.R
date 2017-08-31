@@ -4,7 +4,7 @@ mutual3 <- "./mutual3/mutual"
 
 
 
-for (exper in exper_names) {
+for (exper in exper_names[-1]) {
   
   # Loading/setting parameters
   rootdir <- file.path(sim_res_dir, exper)
@@ -42,7 +42,7 @@ for (exper in exper_names) {
         if (length(results) > 0) {
           comm_strings <- unlist(lapply(results, paste, collapse = " "))
           writeLines(comm_strings, res_dfn)
-          system2(mutual3, c(res_dfn, truth_fn, mut_dfn))
+          system2(mutual3, c(res_dfn, truth_fn, paste0("> ", mut_dfn)))
           onmi <- as.numeric(strsplit(readLines(mut_dfn), "\t")[[1]][2])
         } else {
           writeLines("", res_dfn)
