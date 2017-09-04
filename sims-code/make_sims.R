@@ -1,16 +1,22 @@
+Args = commandArgs(trailingOnly=TRUE)
+
 sim_res_dir <- readLines("sim_res_dir.txt")
 exper_names <- readLines(file.path(sim_res_dir, "exper_names.txt"))
-source("sims-code/netfuns.R")
 
+to_run <- as.numeric(Args)
+
+source("sims-code/netfuns.R")
+source("full_dcsbm.R")
+source("igraph_recast.R")
 # Remake sims or just write scripts?
 remake_sims <- TRUE
 set.seed(12345)
 
-for (exper in exper_names[-1]) {
+for (exper in exper_names[to_run]) {
   
   rootdir <- file.path(sim_res_dir, exper)
-  if (!dir.exists(rootdir))
-    dir.create(rootdir)
+  if (dir.exists(rootdir)) unlink(rootdir, recursive = TRUE)
+  dir.create(rootdir)
   
   load(file.path(sim_res_dir, paste0("pars_", exper, ".RData")))
   
@@ -25,10 +31,11 @@ for (exper in exper_names[-1]) {
       
       cat("p =", p, "i =", i, "\n")
       dat_fn <- paste0(i, ".dat")
+      g_fn <- file.path(curr_dir, dat_fn)
       
       if (remake_sims) {
       
-        # Setting seed
+        # Getting seed
         seedfile <- file.path(curr_dir, paste0(i, "_seed.txt"))
         if (!file.exists(seedfile)) {
           seedpi <- paste(sample(0:9, 9, replace = TRUE), collapse = "")
@@ -38,21 +45,23 @@ for (exper in exper_names[-1]) {
         # Making and saving data
         if (make_type == "R_igraph") {
           set.seed(as.numeric(readLines(seedfile)))
-          Gp <- eval(parse(text = make_code))
-          write.table(get.edgelist(Gp), sep = "\t",
-                      file = file.path(curr_dir, dat_fn),
-                      quote = FALSE, row.names = FALSE, col.names = FALSE)
-          save(Gp, file = file.path(curr_dir, paste0(i, ".RData")))
+          dummy <- sapply(make_code, function (c) eval(parse(text = c)))
         }
         if (make_type == "System") {
+          set.seed(as.numeric(readLines(seedfile)))
           oldwd <- setwd(curr_dir)
-          sapply(make_code, function (c) eval(parse(text = c)))
+          dummy <- sapply(make_code, function (c) eval(parse(text = c)))
           setwd(oldwd)
         }
+        
+        # Recasting in python-igraph format
+        cast_obj <- igraph_recast(as.matrix(read.table(g_fn)))
+        write.table(cast_obj$edgelist, sep = "\t", file = g_fn,
+                    quote = FALSE, row.names = FALSE, col.names = FALSE)
       
         # Making truth in list format
         if (truth_type == "Manual") {
-          comms <- eval(parse(text = truth_code))
+          dummy <- sapply(truth_code, function (c) eval(parse(text = c)))
         }
         if (truth_type == "LFR") {
           comms <- read.table(file.path(curr_dir, "community.dat"),
@@ -61,6 +70,9 @@ for (exper in exper_names[-1]) {
             return(comms$V1[comms$V2 == j])
           })
         }
+        
+        # Porting to python-igraph indexing
+        comms <- lapply(comms, function (C) cast_obj$lookup[C])
         
         # Saving truth list elements in lines of a dat file
         truth_strings <- unlist(lapply(comms, paste, collapse = " "))
