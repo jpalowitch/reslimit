@@ -82,8 +82,17 @@ for (exper in exper_names[to_run]) {
       G <- graph.edgelist(as.matrix(read.table(g_fn)), directed = FALSE)
       timer <- proc.time()[3] - timer
       comms <- cluster_louvain(G)$membership
-      results <- lapply(1:max(comms), function (i) which(comms == i))
+      results <- lapply(1:max(comms), function (j) which(comms == j))
       save(results, timer, file = file.path(curr_dir, paste0("louvain_results_", i, ".RData")))
+      
+      # Running Infomap
+      set.seed(as.numeric(readLines(seedfile)) + 3)
+      timer <- proc.time()[3]
+      G <- graph.edgelist(as.matrix(read.table(g_fn)), directed = FALSE)
+      timer <- proc.time()[3] - timer
+      comms <- cluster_infomap(G)$membership
+      results <- lapply(1:max(comms), function (j) which(comms == j))
+      save(results, timer, file = file.path(curr_dir, paste0("infomap_results_", i, ".RData")))
       
       
       if (do_simann) {
@@ -120,6 +129,20 @@ for (exper in exper_names[to_run]) {
       timer <- proc.time()[3]
       res <- cluster_resolution(g_fn, res_start = 0, res_end = 10, interval = 0.1)
       timer <- proc.time()[3]
+      cr_results <- res$membership
+      results <- lapply(1:max(cr_results), function (j) which(cr_results == j))
+      res_par <- res$res_par
+      save(results, res_par, timer, file = file.path(curr_dir, paste0("RBres_results_", i, ".RData")))
+      
+      # Running CPM resolution tuning
+      set.seed(as.numeric(readLines(seedfile)) + 7)
+      timer <- proc.time()[3]
+      res <- cluster_resolution(g_fn, res_start = 0, res_end = 1, interval = 0.01, method = "CPM")
+      timer <- proc.time()[3]
+      cr_results <- res$membership
+      results <- lapply(1:max(cr_results), function (j) which(cr_results == j))
+      res_par <- res$res_par
+      save(results, res_par, timer, file = file.path(curr_dir, paste0("CPMres_results_", i, ".RData")))
       
       
 

@@ -1,5 +1,8 @@
 Args = commandArgs(trailingOnly=TRUE)
 
+# Compute times in log values?
+log_time <- TRUE
+
 sim_res_dir <- readLines("sim_res_dir.txt")
 exper_names <- readLines(file.path(sim_res_dir, "exper_names.txt"))
 
@@ -26,25 +29,36 @@ for (exper in exper_names[to_run]) {
                        row.names = 1, header = FALSE)
   onmis  <- read.table(file.path(rootdir, "onmi_mat.txt"), 
                        row.names = 1, header = FALSE)
+  CIBs <- read.table(file.path(rootdir, "CIB_mat.txt"), 
+                       row.names = 1, header = FALSE)
   
   # Formatting plot data
   timer_plotdf <- melt(t(timers))
   onmis_plotdf <- melt(t(onmis))
-  levels(timer_plotdf$Var1) <- levels(onmis_plotdf$Var1) <- ps
+  CIBs_plotdf <- melt(t(CIBs))
+  levels(timer_plotdf$Var1) <- levels(onmis_plotdf$Var1) <- 
+    levels(CIBs_plotdf$Var1) <- ps
   timer_plotdf$Var1 <- as.numeric(levels(timer_plotdf$Var1))
   onmis_plotdf$Var1 <- as.numeric(levels(onmis_plotdf$Var1))
+  CIBs_plotdf$Var1 <- as.numeric(levels(CIBs_plotdf$Var1))
   
   # Plotting and saving
+  timer_str <- ifelse(log_time, "log10(seconds + 1)", "seconds")
   tp <- ggplot(timer_plotdf, aes(x = Var1, y = value, colour = Var2)) + 
-    geom_line() + xlab(pname) + ylab("Time (sec)") + 
+    geom_line() + xlab(pname) + ylab(timer_str) + 
     ggtitle(paste0(exper, " Timing")) + 
     guides(colour = guide_legend(title = "Method"))
   op <- ggplot(onmis_plotdf, aes(x = Var1, y = value, colour = Var2)) + 
     geom_line() + xlab(pname) + ylab("ONMI") + 
     ggtitle(paste0(exper, " ONMI")) + 
     guides(colour = guide_legend(title = "Method"))
+  cp <- ggplot(CIBs_plotdf, aes(x = Var1, y = value, colour = Var2)) + 
+    geom_line() + xlab(pname) + ylab("CIB") + 
+    ggtitle(paste0(exper, " CIB")) + 
+    guides(colour = guide_legend(title = "Method"))
   ggsave(file.path(rootdir, "times.png"), tp)
   ggsave(file.path(rootdir, "onmis.png"), op)
+  ggsave(file.path(rootdir, "CIBs.png"), cp)
   
   
 }

@@ -13,11 +13,11 @@ exper_names <- NULL
 exper_name <- "twocliq_nC=8_increase_nS"
 ps <- seq(100, 1000, 100)
 pname <- "nS"
-nsims <- 3
+nsims <- 1
 extra_pars <- list(nC = 8)
-make_code <- "Gp <- twocliq(ps[p], extra_pars$nC, 0.5)"
+make_code <- "Gp <<- twocliq(ps[p], extra_pars$nC, 0.5)"
 make_type <- "R_igraph"
-truth_code <- "comms <- list(1:ps[p], (ps[p] + 1):(ps[p] + extra_pars$nC),
+truth_code <- "comms <<- list(1:ps[p], (ps[p] + 1):(ps[p] + extra_pars$nC),
                     (ps[p] + extra_pars$nC + 1):(ps[p] + 2 * extra_pars$nC))"
 truth_type <- "Manual"
 save(ps, pname, nsims, extra_pars, make_code, make_type, truth_code, truth_type,
@@ -31,7 +31,7 @@ exper_names <- c(exper_names, exper_name)
 exper_name <- "LFR_N=1000_B_20-100_increase_mu"
 ps <- seq(0.05, 0.95, 0.05)
 pname <- "mu"
-nsims <- 1
+nsims <- 3
 extra_pars <- list(N = "-N 1000",
                    k = "-k 20", maxk = "-maxk 50",
                    minc = "-minc 20", maxc = "-maxc 100")

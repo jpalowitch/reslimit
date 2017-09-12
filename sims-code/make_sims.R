@@ -46,6 +46,8 @@ for (exper in exper_names[to_run]) {
         if (make_type == "R_igraph") {
           set.seed(as.numeric(readLines(seedfile)))
           dummy <- sapply(make_code, function (c) eval(parse(text = c)))
+          write.table(get.edgelist(Gp), sep = "\t", file = g_fn,
+                      quote = FALSE, row.names = FALSE, col.names = FALSE)
         }
         if (make_type == "System") {
           set.seed(as.numeric(readLines(seedfile)))
