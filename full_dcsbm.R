@@ -54,7 +54,7 @@ make_param_list <- function (N = 5000,
               "mu" = mu))
 }
 
-DCSBM <- function (param_list,
+DCSBM <- function (param_list, type = "fast",
                    degrees = NULL, 
                    membership = NULL,
                    muversion = TRUE) {
@@ -189,70 +189,92 @@ DCSBM <- function (param_list,
   # Making block model
   cat("constructing block model...\n")
   
-  # Find relative inter-community weights
-  comm_list <- lapply(clabs, function (L) which(membership == L))
-  dC <- unlist(lapply(comm_list, function (C) sum(degrees[C])))
-  Dmat <- tcrossprod(dC) * P / dT
-  Dmat <- round(Dmat / sum(Dmat) * dT)
+  if (type == "fast") {
   
-  cat("sum(Dmat) =", sum(Dmat), "\n")
-  
-  # Make number of edges
-  nEdges <- rbinom(1, N^2, sum(Dmat / N^2))
-  
-  cat("nEdges =", nEdges, "\n")
-  
-  # Assigning edges to inter-community relationships
-  Pmat <- Dmat / sum(Dmat)
-  upperTriangle(Pmat) <- upperTriangle(Pmat) * 2
-  lowerTriangle(Pmat) <- 0
-  edgeCounts <- rmultinom(1, nEdges, as.vector(Pmat))
-  edgeCountMat <- matrix(edgeCounts, K, K)
-  upperTriangle(edgeCountMat) <- upperTriangle(edgeCountMat) / 2
-  lowerTriangle(edgeCountMat) <- lowerTriangle(t(edgeCountMat))
-  edgeCountMat <- ceiling(edgeCountMat)
-  
-  # Assigning inter-community edge counts to nodes
-  nodeDegMat <- matrix(0, N, K)
-  for (i1 in 1:K) {
-    nodes1 <- comm_list[[i1]]
-    degs1 <- degrees[nodes1]
-    for (i2 in i1:K) {
-      nodeDegMat[nodes1, i2] <- rmultinom(1, edgeCountMat[i1, i2], degs1)
+    # Find relative inter-community weights
+    comm_list <- lapply(clabs, function (L) which(membership == L))
+    dC <- unlist(lapply(comm_list, function (C) sum(degrees[C])))
+    Dmat <- tcrossprod(dC) * P / dT
+    Dmat <- round(Dmat / sum(Dmat) * dT)
+    
+    cat("sum(Dmat) =", sum(Dmat), "\n")
+    
+    # Make number of edges
+    nEdges <- rbinom(1, N^2, sum(Dmat / N^2))
+    
+    cat("nEdges =", nEdges, "\n")
+    
+    # Assigning edges to inter-community relationships
+    Pmat <- Dmat / sum(Dmat)
+    upperTriangle(Pmat) <- upperTriangle(Pmat) * 2
+    lowerTriangle(Pmat) <- 0
+    edgeCounts <- rmultinom(1, nEdges, as.vector(Pmat))
+    edgeCountMat <- matrix(edgeCounts, K, K)
+    upperTriangle(edgeCountMat) <- upperTriangle(edgeCountMat) / 2
+    lowerTriangle(edgeCountMat) <- lowerTriangle(t(edgeCountMat))
+    edgeCountMat <- ceiling(edgeCountMat)
+    
+    # Assigning inter-community edge counts to nodes
+    nodeDegMat <- matrix(0, N, K)
+    for (i1 in 1:K) {
+      nodes1 <- comm_list[[i1]]
+      degs1 <- degrees[nodes1]
+      for (i2 in i1:K) {
+        nodeDegMat[nodes1, i2] <- rmultinom(1, edgeCountMat[i1, i2], degs1)
+      }
     }
-  }
-  
-  # Run within/between-community configuration models
-  edgelist_mats <- rep(list(NULL), K^2)
-  for (i1 in 1:K) {
     
-    nodes1 <- comm_list[[i1]]
-    
-    for (i2 in i1:K) {
+    # Run within/between-community configuration models
+    edgelist_mats <- rep(list(NULL), K^2)
+    for (i1 in 1:K) {
       
-      elm_indx <- K * (i1 - 1) + i2
+      nodes1 <- comm_list[[i1]]
       
-      # Draw nodes node-wise for between-comm
-      if (i2 > i1) {
-        nodes2 <- comm_list[[i2]]
-        node2_input <- unlist(lapply(nodeDegMat[nodes1, i2], function (d) {
-          sample(nodes2, d, replace = FALSE, prob = degrees[nodes2])
-        }))
-        node1_input <- rep.int(nodes1, times = nodeDegMat[nodes1, i2])
-        edgelist_mats[[elm_indx]] <- cbind(node1_input, node2_input)
-      }
-      
-      # Do config model for within-comm
-      if (i2 == i1) {
+      for (i2 in i1:K) {
         
-        degs <- nodeDegMat[nodes1, i1]
-        if (sum(degs) %% 2 != 0) {
-          degs[which.max(degs)] <- max(degs) + 1
+        elm_indx <- K * (i1 - 1) + i2
+        
+        # Draw nodes node-wise for between-comm
+        if (i2 > i1) {
+          nodes2 <- comm_list[[i2]]
+          node2_input <- unlist(lapply(nodeDegMat[nodes1, i2], function (d) {
+            sample(nodes2, d, replace = FALSE, prob = degrees[nodes2])
+          }))
+          node1_input <- rep.int(nodes1, times = nodeDegMat[nodes1, i2])
+          edgelist_mats[[elm_indx]] <- cbind(node1_input, node2_input)
         }
-        edge_vec <- sample(rep.int(nodes1, times = degs))
-        edgelist_mats[[elm_indx]] <- matrix(edge_vec, ncol = 2)
+        
+        # Do config model for within-comm
+        if (i2 == i1) {
+          
+          degs <- nodeDegMat[nodes1, i1]
+          if (sum(degs) %% 2 != 0) {
+            degs[which.max(degs)] <- max(degs) + 1
+          }
+          edge_vec <- sample(rep.int(nodes1, times = degs))
+          edgelist_mats[[elm_indx]] <- matrix(edge_vec, ncol = 2)
+          
+        }
         
       }
+      
+    }
+    
+  } else {
+    
+    P2 <- P * K
+    
+    edgelist_mats <- rep(list(NULL), N - 1)
+    
+    for (u in 1:(N - 1)) {
+      
+      u_nodes <- (u + 1):N
+      memb_match <- as.numeric(membership[u_nodes] == membership[u])
+      comm_p <- memb_match * P2[1, 1] + (1 - memb_match) * P2[1, 2]
+      pvec_u <- degrees[u_nodes] * degrees[u] / dT * comm_p
+      if (max(pvec_u) > 1) pvec_u <- pvec_u / max(pvec_u)
+      edges <- u_nodes[which(rbinom(N - u, 1, prob = pvec_u) == 1)]
+      edgelist_mats[[u]] <- cbind(rep(u, length(edges)), edges)
       
     }
     
@@ -269,10 +291,14 @@ DCSBM <- function (param_list,
   edgelist <- edgelist[!edgelist[ , 1] == edgelist[ , 2], ]
   edgelist <- edgelist[order(edgelist[ , 1]), ]
   
+  lookup <- integer(N)
+  unique_nodes <- sort(unique(as.vector(edgelist)))
+  lookup[unique_nodes] <- 1:length(unique_nodes)
+  edgelist <- apply(edgelist, 2, function (C) lookup[C])
   
   # Making network and returning
   G <- graph.edgelist(edgelist, directed = FALSE)
-  return(list(graph = G, membership = membership,
+  return(list(graph = G, membership = membership[unique_nodes],
               P = P, degrees = degrees, param_list = param_list))
   
 }

@@ -1,7 +1,7 @@
 library(Matrix)
 source("full_dcsbm.R")
 param_list <- make_param_list(min_c = 20, max_c = 100, k = 20, max_k = 50, s2n = 10, N = 1000)
-sbm_obj <- DCSBM(param_list, muversion = FALSE)
+sbm_obj <- DCSBM(param_list, muversion = FALSE, type = "slow")
 K <- max(sbm_obj$membership)
 comms <- lapply(1:K, function (i) which(sbm_obj$membership == i))
 nodeorder <- unlist(comms)
@@ -23,8 +23,9 @@ for (i in 1:K) {
   
 }
 
-odegrees <- degree(G)
-pdegrees <- sbm_obj$degrees
+good_nodes <- which(degree(G) > 0)
+odegrees <- degree(G)[good_nodes]
+pdegrees <- sbm_obj$degrees[good_nodes]
 plot(pdegrees, odegrees)
 abline(0, 1, col = "red")
 
