@@ -28,8 +28,16 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
     sg_fn_base <- paste0("subgraph", sgn)
     graph_fn <- file.path(paste0(sg_fn_base, ".dat"))
     cat("modularity maximization for level", level, "subgraph", sgn, "\n")
-    G <- graph.edgelist(as.matrix(read.table(graph_fn)), directed = FALSE)
+    el <- as.matrix(read.table(graph_fn))
+    G <- graph.edgelist(el[ , 1:2], directed = FALSE)
     n <- length(V(G))
+    
+    # Add edges
+    if (ncol(el) > 2) {
+      E(G)$weight <- el[ , 3]
+    } else {
+      E(G)$weight <- rep(1, nrow(el))
+    }
     
     # Running optimization
     if (mod_type == "louvain") {
