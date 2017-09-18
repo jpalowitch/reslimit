@@ -1,3 +1,4 @@
+rm -rf modbp
 rm -rf binary_networks
 rm -rf OSLOM2
 rm -rf mutual3
@@ -28,10 +29,16 @@ rm clustering_programs.tar.gz
 cd clustering_programs_5_2
 chmod 744 compile.sh
 ./compile.sh
+wget http://lib.itp.ac.cn/html/panzhang/mod/mod.tar.gz
+tar -xvzf mod.tar.gz
+rm mod.tar.gz
+cd modbp
+make
+cd ../
 
 Rscript sims-code/make_params.R
-Rscript sims-code/make_sims.R
-Rscript sims-code/run_methods.R
-Rscript sims-code/get_results.R
-Rscript sims-code/plot_results.R
+Rscript sims-code/make_sims.R 1 4 5
+Rscript sims-code/run_methods.R 1 4 5
+Rscript sims-code/get_results.R 1 4 5
+Rscript sims-code/plot_results.R 1 4 5
 

@@ -14,6 +14,7 @@ do_rmod_louvain <- TRUE
 do_rmod_simann <- FALSE
 do_simann <- FALSE
 sa_path <- "~/Documents/code/reslimit"
+mod_bp_path <- "./modbp/mod"
 set.seed(12345)
   
 for (exper in exper_names[to_run]) {
@@ -144,7 +145,15 @@ for (exper in exper_names[to_run]) {
       res_par <- res$res_par
       save(results, res_par, timer, file = file.path(curr_dir, paste0("CPMres_results_", i, ".RData")))
       
-      
+      # Running MODRB
+      modrb_seed <- as.numeric(readLines(seedfile)) + 8
+      timer <- proc.time()[3]
+      system(paste(mod_bp_path, "hiera", "-l", file.path(curr_dir, paste0(i, ".gml")),
+                   "--confi", file.path(curr_dir, "modbp_result.dat")))
+      membership <- as.numeric(unlist(readLines(file.path(curr_dir, "modbp_result.dat"))))
+      results <- lapply(1:max(membership), function (j) which(membership == j))
+      save(results, timer, file = file.path(curr_dir, paste0("modbpy_results_", i, ".RData")))
+      timer <- proc.time()[3]
 
     }
     

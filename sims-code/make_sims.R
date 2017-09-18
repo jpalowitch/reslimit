@@ -60,6 +60,11 @@ for (exper in exper_names[to_run]) {
         cast_obj <- igraph_recast(as.matrix(read.table(g_fn)))
         write.table(cast_obj$edgelist, sep = "\t", file = g_fn,
                     quote = FALSE, row.names = FALSE, col.names = FALSE)
+        
+        # Writing in GML format
+        G_igraph <- graph.edgelist(cast_obj$edgelist, directed = FALSE)
+        write_graph(G_igraph, file = file.path(curr_dir, paste0(i, ".gml")),
+                    format = "gml")
       
         # Making truth in list format
         if (truth_type == "Manual") {
