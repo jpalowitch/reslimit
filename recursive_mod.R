@@ -1,4 +1,4 @@
-mycscore_path <- "~/Documents/code/cscore"
+mycscore_path <- "~/Documents/code/reslimit"
 source(file.path(mycscore_path, "my_cscore.R"))
 
 recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
