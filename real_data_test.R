@@ -3,6 +3,7 @@ source("mod_sig.R")
 source("../cscore_test/cscore/config_model.R")
 source("recursive_mod.R")
 source("cluster_resolution.R")
+source("igraph_recast.R")
 
 ### Political Blogs
 data_dir <- "data_sets"
@@ -12,13 +13,18 @@ polblogs <- read.graph(file.path(data_dir, data_set, data_fn), format = "gml")
 polblogs <- as.undirected(polblogs)
 polblogs <- delete_vertices(polblogs, which(degree(polblogs) == 0))
 edgelist <- get.edgelist(polblogs)
+
+# Re-casting for igraph
+recast_obj <- igraph_recast(edgelist)
 el_fn <- file.path(data_dir, data_set, "edgelist.dat")
-write.table(as.matrix(edgelist), quote = FALSE, row.names = FALSE, col.names = FALSE,
+write.table(as.matrix(recast_obj$edgelist), quote = FALSE, row.names = FALSE, col.names = FALSE,
             file = el_fn)
 res <- recursive_mod(el_fn, cscore_type = "r_bscore")
 sig_obj <- mod_sig(edgelist = edgelist)
-resolution_obj <- cluster_resolution(el_fn, res_start = 0, res_end = 10, interval = 0.1,
-                                     test_partitions = list(res$alllevels[[1]]))
+resolution_obj <- cluster_resolution(el_fn, res_start = 0, res_end = 3, interval = 0.05,
+                                     test_partitions = res$alllevels)
+
+
 
 ### Bible
 data_dir <- "data_sets"

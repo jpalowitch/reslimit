@@ -267,43 +267,56 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
   
     if (length(level_memships) > 1) {
       
-      clust <- level_memships[[1]]
+      full_level_memships <- level_memships
       
-      for (lvl in 1:(length(level_memships) - 1)) {
+      for (j in 2:length(level_memships)) {
+      
+        clust <- level_memships[[1]]
+      
+        for (lvl in 1:(j - 1)) {
         
-        clust_start <- clust
-        
-        for (ci in sort(unique(clust_start))) {
+          clust_start <- clust
           
-          ci_locs <- which(clust_start == ci)
-          ci_nums <- as.integer(level_memships[[lvl + 1]][ci_locs])
-          next_locs <- which(clust_start > ci)
-          if (sum(ci_nums != 0) > 0) {
-            comm_nums <- sort(unique(ci_nums))
-            comm_labels <- rank(comm_nums)
-            comm_label_mch <- comm_labels[match(ci_nums, comm_nums)]
-            clust[ci_locs] <- clust[ci_locs] + comm_label_mch - 1
-            clust[next_locs] <- clust[next_locs] + max(comm_label_mch) - 1
+          for (ci in sort(unique(clust_start))) {
+            
+            ci_locs <- which(clust_start == ci)
+            ci_nums <- as.integer(level_memships[[lvl + 1]][ci_locs])
+            next_locs <- which(clust_start > ci)
+            if (sum(ci_nums != 0) > 0) {
+              comm_nums <- sort(unique(ci_nums))
+              comm_labels <- rank(comm_nums)
+              comm_label_mch <- comm_labels[match(ci_nums, comm_nums)]
+              clust[ci_locs] <- clust[ci_locs] + comm_label_mch - 1
+              clust[next_locs] <- clust[next_locs] + max(comm_label_mch) - 1
+            }
+            
           }
-          
+        
         }
+        
+        full_level_memships[[j]] <- clust
         
       }
       
-      results <- lapply(sort(unique(clust)), function (i) which(clust == i))
-        
     } else {
       
-      results <- lapply(sort(unique(level_memships[[1]])), 
-                        function (i) which(level_memships[[1]] == i))
+      clust <- level_memships[[1]]
       
+    }
+    
+    results <- lapply(sort(unique(clust)), function (i) which(clust == i))
+    if (sum(clust == 0) > 1) {
+      background <- results[[1]]
+      results <- results[-1]
     }
     
   } else {
     results <- NULL
+    background <- 1:n
   }
   
-  return(list(alllevels = level_memships,
-              results = results))
+  return(list(alllevels = full_level_memships,
+              results = results,
+              background = background))
 
 }

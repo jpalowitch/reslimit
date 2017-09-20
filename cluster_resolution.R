@@ -89,6 +89,7 @@ cluster_resolution <- function (fn, method = 'RBConfiguration', res_start = 1, r
   return(list(membership = membership,
               res_par = res_par_final,
               part_mat = part_mat,
+              res_pars = seq(res_start, res_end, interval),
               VIs = VIs, Ks = Ks))
   
 }
