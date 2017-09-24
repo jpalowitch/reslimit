@@ -1,0 +1,3 @@
+Rscript applications-code/airports-dataprep.R
+Rscript applications-code/rm_nodes_make_years.R
+Rscript applications-code/airports-save_Rdatas.R

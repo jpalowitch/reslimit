@@ -301,10 +301,12 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
     } else {
       
       clust <- level_memships[[1]]
+      full_level_memships <- list(clust)
       
     }
     
     results <- lapply(sort(unique(clust)), function (i) which(clust == i))
+    background <- integer(0)
     if (sum(clust == 0) > 1) {
       background <- results[[1]]
       results <- results[-1]

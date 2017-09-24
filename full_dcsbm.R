@@ -55,7 +55,7 @@ make_param_list <- function (N = 5000,
 }
 
 DCSBM <- function (param_list, type = "fast",
-                   degrees = NULL, 
+                   degrees = NULL, P = NULL,
                    membership = NULL,
                    muversion = TRUE) {
   
@@ -63,10 +63,10 @@ DCSBM <- function (param_list, type = "fast",
   notes <- character(0)
   
   # Extracting from paramList  
-  N <- param_list$N
+  N <- ifelse(is.null(membership), param_list$N, length(membership))
   max_c <- param_list$max_c
   min_c <- param_list$min_c
-  k <- param_list$k
+  k <- ifelse(is.null(membership), param_list$k, nrow(P))
   max_k <- param_list$max_k
   tau_1 <- param_list$tau_1
   tau_2 <- param_list$tau_2
@@ -117,17 +117,21 @@ DCSBM <- function (param_list, type = "fast",
     
   }
   
-  # Making P matrix
-  K <- max(membership)
-  P <- matrix(1, K, K)
-  if (!muversion) {
-    diag(P) <- s2n
-  } else {
-    perComm <- mu / (K - 1)
-    diag(P) <- 1 - mu
-    P[row(P) != col(P)] <- perComm
+  if (is.null(P)) {
+    # Making P matrix
+    K <- max(membership)
+    P <- matrix(1, K, K)
+    if (!muversion) {
+      diag(P) <- s2n
+    } else {
+      perComm <- mu / (K - 1)
+      diag(P) <- 1 - mu
+      P[row(P) != col(P)] <- perComm
+    }
+    P <- K * P / sum(P)
+    if (type == "slow") P <- P * K
   }
-  P <- K * P / sum(P)
+  
   
   # Setting degrees
   if (is.null(degrees)) {
@@ -262,15 +266,14 @@ DCSBM <- function (param_list, type = "fast",
     
   } else {
     
-    P2 <- P * K
-    
     edgelist_mats <- rep(list(NULL), N - 1)
     
     for (u in 1:(N - 1)) {
       
       u_nodes <- (u + 1):N
-      memb_match <- as.numeric(membership[u_nodes] == membership[u])
-      comm_p <- memb_match * P2[1, 1] + (1 - memb_match) * P2[1, 2]
+      Pi <- membership[u_nodes]
+      Pj <- membership[u]
+      comm_p <- P[Pi, Pj]
       pvec_u <- degrees[u_nodes] * degrees[u] / dT * comm_p
       if (max(pvec_u) > 1) pvec_u <- pvec_u / max(pvec_u)
       edges <- u_nodes[which(rbinom(N - u, 1, prob = pvec_u) == 1)]

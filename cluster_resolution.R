@@ -43,9 +43,9 @@ cluster_resolution <- function (fn, method = 'RBConfiguration', res_start = 1, r
       if (nparts > 0) {
         for (j in 1:nparts) {
           testpart <- test_partitions[[j]]
-          background <- which(testpart == 0)
-          cur_membership_test <- cur_membership[-background]
-          testpart <- testpart[-background]
+          background <- testpart == 0
+          cur_membership_test <- cur_membership[!background]
+          testpart <- testpart[!background]
           part_mat[j, i] <- compare(testpart, cur_membership_test, 
                                     method = "vi") / log(N)
         }
