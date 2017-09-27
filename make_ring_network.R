@@ -1,5 +1,7 @@
 make_ring_networks <- function (k, nC = 10, eB = 1) {
   
+  suppressMessages(require(igraph))
+  
   # Making cliques
   cdf <- t(combn(nC, 2))
   cdfs <- lapply(1:k, function (i) cdf + (i - 1) * nC)
