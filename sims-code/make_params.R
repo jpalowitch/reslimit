@@ -189,8 +189,6 @@ exper_names <- c(exper_names, exper_name)
 
 ################################################################################
 
-################################################################################
-
 # SBM0 with increasing mu, homogenous degrees, uniform community sizes
 exper_name <- "SBM0_N=1000_B_20-100_Dhomo_increase_mu_tau3_uniform"
 ps <- seq(0.05, 0.95, 0.05)
@@ -209,5 +207,8 @@ save(ps, pname, nsims, extra_pars, make_code, make_type, truth_code, truth_type,
 
 exper_names <- c(exper_names, exper_name)
 
+################################################################################
+
 writeLines(exper_names, con = file.path(sim_res_dir, "exper_names.txt"))
 writeLines(sim_res_dir, con = "sim_res_dir.txt")
+
