@@ -29,7 +29,11 @@ power_law <- function (n, tau, max_set, min_set = NULL, mean_set = NULL) {
     }
   }
   
-  p_law_sample <- sample(min_set:max_set, n, replace = TRUE, prob = prob)
+  if (min_set == max_set) {
+    p_law_sample <- rep(max_set, n)
+  } else {
+    p_law_sample <- sample(min_set:max_set, n, replace = TRUE, prob = prob)
+  }
   return(p_law_sample)
 }
 
@@ -73,6 +77,8 @@ DCSBM <- function (param_list, type = "fast",
   s2n <- param_list$s2n
   mu <- param_list$mu
   
+  #cat("got here 1\n")
+  
   # Making membership
   if (is.null(membership)) {
     
@@ -83,10 +89,19 @@ DCSBM <- function (param_list, type = "fast",
     n_c <- 0
     N_comm <- sum(comm_sizes)
     while (n_c < 1 || N_comm < n_m) {
-      new_draw <- power_law(1,
-                            max_set = max_c,
-                            min_set = min_c,
-                            tau = tau_2)
+      
+      if (tau_2 < Inf) {
+        new_draw <- power_law(1,
+                              max_set = max_c,
+                              min_set = min_c,
+                              tau = tau_2)
+      } else {
+        if (min_c < max_c) {
+          new_draw <- sample(min_c:max_c, 1)
+        } else {
+          new_draw <- max_c
+        }
+      }
       comm_sizes <- c(new_draw, comm_sizes)
       n_c <- length(comm_sizes)
       N_comm <- sum(comm_sizes)
@@ -116,6 +131,8 @@ DCSBM <- function (param_list, type = "fast",
     membership <- unlist(lapply(1:N, get_membership))
     
   }
+  #cat(head(membership), "\n")
+  #cat("got here 2\n")
   
   if (is.null(P)) {
     # Making P matrix
@@ -132,6 +149,7 @@ DCSBM <- function (param_list, type = "fast",
     if (type == "slow") P <- P * K
   }
   
+  #cat("got here 3\n")
   
   # Setting degrees
   if (is.null(degrees)) {
@@ -144,52 +162,74 @@ DCSBM <- function (param_list, type = "fast",
     message("adjusting degrees, since max(degrees) > N\n")
     degrees[degrees > N] <- N
   }
-  
-  # Fixing degrees step 2
-  {
-    # Getting unique community labels
-    clabs <- unique(membership)
+  #cat("got here 4\n")
+   
+  repeat { 
     
-    # Looping degree correction until fixed
-    max_Pnum <- 2
-    while (max_Pnum > 1) {
+    # Fixing degrees step 2
+    {
+      # Getting unique community labels
+      clabs <- sort(unique(membership))
       
-      # Finding maximum degree in each community
-      maxd_C <- unlist(lapply(clabs, function (L) {
-        max(degrees[membership == L])
-      }))
-      
-      # Finding 2nd max degree in each community
-      maxd_C2 <- unlist(lapply(clabs, function (L) {
-        tail(sort(degrees[membership == L]), 2)[1]
-      }))
-      
-      # Making max probability mat
-      max_P <- tcrossprod(maxd_C) / dT * P
-      diag(max_P) <- diag(max_P) * maxd_C2 / maxd_C
-      
-      # Assessing the max
-      max_Pnum <- max(max_P)
-      
-      # Fixing if needed
-      if (max_Pnum > 1) {
-        culprit <- which(max_P == max_Pnum, arr.ind = TRUE)
-        C1 <- culprit[1]; C2 <- culprit[2]
-        D1 <- degrees[membership == C1]; D2 <- degrees[membership == C2]
-        D1max <- max(D1); D2max <- max(D2)
-        if (D1max >= D2max) {
-          D1[D1 == D1max] <- D1[D1 == D1max] - 1
-          degrees[membership == C1] <- D1
-        } else {
-          D2[D2 == D2max] <- D2[D2 == D2max] - 1
-          degrees[membership == C2] <- D2
-        }
-      }
+      # Looping degree correction until fixed
+      max_Pnum <- 2
+      while (max_Pnum > 1) {
         
+        # Finding maximum degree in each community
+        maxd_C <- unlist(lapply(clabs, function (L) {
+          max(degrees[membership == L])
+        }))
+        
+        # Finding 2nd max degree in each community
+        maxd_C2 <- unlist(lapply(clabs, function (L) {
+          tail(sort(degrees[membership == L]), 2)[1]
+        }))
+        
+        # Making max probability mat
+        max_P <- tcrossprod(maxd_C) / dT * P
+        diag(max_P) <- diag(max_P) * maxd_C2 / maxd_C
+        
+        # Assessing the max
+        max_Pnum <- max(max_P)
+        
+        #cat(max_Pnum, "\n")
+        
+        #cat("got here 4.5\n")
+        
+        # Fixing if needed
+        if (max_Pnum > 1) {
+          culprit <- which(max_P == max_Pnum, arr.ind = TRUE)
+          if (length(culprit) == 2) {
+            C1 <- culprit[1]; C2 <- culprit[2]
+          } else {
+            C1 <- culprit[1, 1]; C2 <- culprit[1, 2]
+          }
+          D1 <- degrees[membership == C1]; D2 <- degrees[membership == C2]
+          D1max <- max(D1); D2max <- max(D2)
+          if (D1max >= D2max) {
+            D1[D1 == D1max] <- D1max - 1
+            degrees[membership == C1] <- D1
+          } else {
+            D2[D2 == D2max] <- D2max - 1
+            degrees[membership == C2] <- D2
+          }
+        }
+          
+      }
+      
     }
     
+    # Scaling P so that it matches dT
+    target_sum <- sum(degrees)
+    dC <- unlist(lapply(1:K, function (k) sum(degrees[membership == k])))
+    mean_mat <- tcrossprod(dC) / dT * P
+    actual_sum <- sum(mean_mat)
+    P <- P * target_sum / actual_sum
+    #cat("iteration--\n")
+    #cat("--", round(target_sum, 2), "vs", round(actual_sum, 2), "\n")
+    if (actual_sum - target_sum <= 1e-5) break
   }
-  
+  #cat("got here 5\n")
   # Making block model
   cat("constructing block model...\n")
   

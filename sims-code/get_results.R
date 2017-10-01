@@ -8,6 +8,9 @@ exper_names <- readLines(file.path(sim_res_dir, "exper_names.txt"))
 
 to_run <- as.numeric(Args)
 
+# Methods to ignore
+ignore_meths <- c("rmodcLouv", "CPMres")
+
 mutual3 <- "./mutual3/mutual"
 
 for (exper in exper_names[to_run]) {
@@ -21,6 +24,7 @@ for (exper in exper_names[to_run]) {
   fns <- list.files(dummy_dir)
   methFiles <- fns[grepl("results", fns)]
   methNames <- unique(sapply(methFiles, function (c) strsplit(c, "_")[[1]][1]))
+  methNames <- setdiff(methNames, ignore_meths)
   rm(dummy_dir, fns, methFiles)
   
   # Making results matrices

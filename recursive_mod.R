@@ -31,6 +31,7 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
     el <- as.matrix(read.table(graph_fn))
     G <- graph.edgelist(el[ , 1:2], directed = FALSE)
     n <- length(V(G))
+    #cat("n =", n, "\n")
     
     # Add edges
     if (ncol(el) > 2) {
@@ -60,7 +61,7 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
     } else {
       stop("Mod type unsupported")
     }
-    
+    #cat("n =", n, "\n")
     # Writing communities
     comms_fn <- file.path(paste0(sg_fn_base, "_comms.dat"))
     comms_text <- unlist(lapply(comms, paste, collapse = " "))
@@ -204,6 +205,8 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
     # Creating membership vector
     membership <- numeric(n)
     for (i in seq_along(sig_comms)) {membership[sig_comms[[i]]] <- comm_nums[i]}
+    
+    #cat("-- done with modularity maximization for level", level, "subgraph", sgn, "\n")
     return(membership)
     
   }
@@ -260,6 +263,8 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
 
   }
   
+  n <- length(memships[[1]])
+    
   # Creating results list
   if (length(level_memships[[1]]) > 0) {
     
@@ -313,6 +318,7 @@ recursive_mod <- function (fn, alpha = 0.05, cscore_type = "default",
     }
     
   } else {
+    full_level_memships <- memships
     results <- NULL
     background <- 1:n
   }

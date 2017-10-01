@@ -10,6 +10,7 @@ source("cluster_resolution.R")
 source("read_undirected_py.R")
 source("sims-code/netfuns.R")
 source("osRead.R")
+source("sbm_diagnostics.R")
 do_rmod_louvain <- TRUE
 do_rmod_simann <- FALSE
 do_simann <- FALSE
@@ -152,8 +153,27 @@ for (exper in exper_names[to_run]) {
                    "--confi", file.path(curr_dir, "modbp_result.dat")))
       membership <- as.numeric(unlist(readLines(file.path(curr_dir, "modbp_result.dat"))))
       results <- lapply(1:max(membership), function (j) which(membership == j))
+      timer <- proc.time()[3] - timer
       save(results, timer, file = file.path(curr_dir, paste0("modbpy_results_", i, ".RData")))
+      
+      # running graphtool
       timer <- proc.time()[3]
+      system(paste("/usr/bin/python",
+                   "fit_sbm.py",
+                   file.path(curr_dir, paste0(i, ".graphml")),
+                   file.path(curr_dir, paste0(i, "_gtMemship.dat"))))
+      timer <- proc.time()[3] - timer
+      membership <- as.integer(readLines(file.path(curr_dir, paste0(i, "_gtMemship.dat")))) + 1
+      results <- lapply(1:max(membership), function (j) which(membership == j))
+      save(results, timer, file = file.path(curr_dir, paste0("sbm_results_", i, ".RData")))
+      
+      # For SBMs, assessing graph statistics
+      if (grepl('SBM', exper)) {
+        truth_fn <- file.path(curr_dir, paste0(i, "_truth.dat"))
+        results <- SBM_diagnostics(G, truth_fn)
+        save(results, file = file.path(curr_dir, paste0("sbm_diagnostics_", i, ".RData")))
+      }
+      
 
     }
     

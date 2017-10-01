@@ -14,7 +14,10 @@ igraph_recast <- function (el, membership = NULL) {
   # Getting new membership if it was put in
   if (!is.null(membership)) {
     membership_recast <- membership[order(lookup)]
+  } else {
+    membership_recast <- NULL
   }
+  
   return(list(edgelist = el2, lookup = lookup, 
               membership = membership_recast))
   

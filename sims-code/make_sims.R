@@ -29,7 +29,8 @@ for (exper in exper_names[to_run]) {
     
     for (i in 1:nsims) {
       
-      cat("p =", p, "i =", i, "\n")
+      cat("exper =", exper, "\n")
+      cat("-- p =", p, "i =", i, "\n")
       dat_fn <- paste0(i, ".dat")
       g_fn <- file.path(curr_dir, dat_fn)
       
@@ -56,16 +57,6 @@ for (exper in exper_names[to_run]) {
           setwd(oldwd)
         }
         
-        # Recasting in python-igraph format
-        cast_obj <- igraph_recast(as.matrix(read.table(g_fn)))
-        write.table(cast_obj$edgelist, sep = "\t", file = g_fn,
-                    quote = FALSE, row.names = FALSE, col.names = FALSE)
-        
-        # Writing in GML format
-        G_igraph <- graph.edgelist(cast_obj$edgelist, directed = FALSE)
-        write_graph(G_igraph, file = file.path(curr_dir, paste0(i, ".gml")),
-                    format = "gml")
-      
         # Making truth in list format
         if (truth_type == "Manual") {
           dummy <- sapply(truth_code, function (c) eval(parse(text = c)))
@@ -78,8 +69,26 @@ for (exper in exper_names[to_run]) {
           })
         }
         
+        # Making membership vector
+        membership <- unlist(comms)
+        for (k in 1:length(comms)) membership[comms[[k]]] <- k
+        
+        # Recasting in python-igraph format
+        cast_obj <- igraph_recast(as.matrix(read.table(g_fn)), membership)
+        write.table(cast_obj$edgelist, sep = "\t", file = g_fn,
+                    quote = FALSE, row.names = FALSE, col.names = FALSE)
+        
         # Porting to python-igraph indexing
         comms <- lapply(comms, function (C) cast_obj$lookup[C])
+        
+        # Writing in GML format
+        G_igraph <- graph.edgelist(cast_obj$edgelist, directed = FALSE)
+        write_graph(G_igraph, file = file.path(curr_dir, paste0(i, ".gml")),
+                    format = "gml")
+        
+        # Writing in graphml format
+        write_graph(G_igraph, file = file.path(curr_dir, paste0(i, ".graphml")),
+                    format = "graphml")
         
         # Saving truth list elements in lines of a dat file
         truth_strings <- unlist(lapply(comms, paste, collapse = " "))
