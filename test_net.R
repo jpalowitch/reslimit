@@ -2,6 +2,7 @@ source("full_dcsbm.R")
 source("cluster_resolution.R")
 source("recursive_mod.R")
 source("igraph_recast.R")
+source("plot_hierarchies.R")
 
 N <- 1000
 
@@ -15,7 +16,7 @@ degrees <- rep(N / 2, N)
 param_list <- make_param_list()
 set.seed(12345)
 test_net <- DCSBM(param_list, degrees = degrees, type = "slow",
-                  P = P, membership = membership)
+                  P = P, membership = membership, adjust = FALSE)
 edgelist1 <- get.edgelist(test_net$graph)
 png("hierarchical_adj.png")
 image(get.adjacency(test_net$graph))
@@ -40,3 +41,16 @@ res_search <- cluster_resolution(fn = "test_net.dat", res_start = 0, res_end = 5
                                  test_partitions = res$alllevels)
 source("plot_hierarchies.R")
 plot_hierarchies(res_search, fn = "test_net_res.png")
+
+# Running SBM
+write.graph(G, format = "graphml", file = "test_net.graphml")
+curr_dir <- '.'
+system(paste("/usr/bin/python",
+             "fit_sbm.py",
+             file.path(curr_dir, paste0("test_net", ".graphml")),
+             file.path(curr_dir, paste0("test_net", "_gtMemship.dat"))))
+sbm_membership <- as.integer(readLines(file.path(curr_dir, paste0("test_net", "_gtMemship.dat")))) + 1
+
+# comparing rmod and truth
+compare(res$alllevels[[2]], membership, method = "nmi")
+compare(sbm_membership, membership, method = "nmi")

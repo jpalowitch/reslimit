@@ -61,7 +61,8 @@ make_param_list <- function (N = 5000,
 DCSBM <- function (param_list, type = "fast",
                    degrees = NULL, P = NULL,
                    membership = NULL,
-                   muversion = TRUE) {
+                   muversion = TRUE, adjust = TRUE,
+                   graph_tool = FALSE) {
   
   # Making a notes character vector
   notes <- character(0)
@@ -134,9 +135,9 @@ DCSBM <- function (param_list, type = "fast",
   #cat(head(membership), "\n")
   #cat("got here 2\n")
   
+  K <- max(membership)
   if (is.null(P)) {
     # Making P matrix
-    K <- max(membership)
     P <- matrix(1, K, K)
     if (!muversion) {
       diag(P) <- s2n
@@ -157,148 +158,169 @@ DCSBM <- function (param_list, type = "fast",
   } 
   dT <- sum(degrees)
   
-  # Fixing degrees step 1
-  if (max(degrees) > N) {
-    message("adjusting degrees, since max(degrees) > N\n")
-    degrees[degrees > N] <- N
-  }
-  #cat("got here 4\n")
-   
-  repeat { 
-    
-    # Fixing degrees step 2
-    {
-      # Getting unique community labels
-      clabs <- sort(unique(membership))
+  if (!graph_tool) {
+  
+    # Fixing degrees step 1
+    if (max(degrees) > N) {
+      message("adjusting degrees, since max(degrees) > N\n")
+      degrees[degrees > N] <- N
+    }
+    #cat("got here 4\n")
+     
+    while (adjust) { 
       
-      # Looping degree correction until fixed
-      max_Pnum <- 2
-      while (max_Pnum > 1) {
+      # Fixing degrees step 2
+      {
+        # Getting unique community labels
+        clabs <- sort(unique(membership))
         
-        # Finding maximum degree in each community
-        maxd_C <- unlist(lapply(clabs, function (L) {
-          max(degrees[membership == L])
-        }))
-        
-        # Finding 2nd max degree in each community
-        maxd_C2 <- unlist(lapply(clabs, function (L) {
-          tail(sort(degrees[membership == L]), 2)[1]
-        }))
-        
-        # Making max probability mat
-        max_P <- tcrossprod(maxd_C) / dT * P
-        diag(max_P) <- diag(max_P) * maxd_C2 / maxd_C
-        
-        # Assessing the max
-        max_Pnum <- max(max_P)
-        
-        #cat(max_Pnum, "\n")
-        
-        #cat("got here 4.5\n")
-        
-        # Fixing if needed
-        if (max_Pnum > 1) {
-          culprit <- which(max_P == max_Pnum, arr.ind = TRUE)
-          if (length(culprit) == 2) {
-            C1 <- culprit[1]; C2 <- culprit[2]
-          } else {
-            C1 <- culprit[1, 1]; C2 <- culprit[1, 2]
-          }
-          D1 <- degrees[membership == C1]; D2 <- degrees[membership == C2]
-          D1max <- max(D1); D2max <- max(D2)
-          if (D1max >= D2max) {
-            D1[D1 == D1max] <- D1max - 1
-            degrees[membership == C1] <- D1
-          } else {
-            D2[D2 == D2max] <- D2max - 1
-            degrees[membership == C2] <- D2
-          }
-        }
+        # Looping degree correction until fixed
+        max_Pnum <- 2
+        while (max_Pnum > 1) {
           
-      }
-      
-    }
-    
-    # Scaling P so that it matches dT
-    target_sum <- sum(degrees)
-    dC <- unlist(lapply(1:K, function (k) sum(degrees[membership == k])))
-    mean_mat <- tcrossprod(dC) / dT * P
-    actual_sum <- sum(mean_mat)
-    P <- P * target_sum / actual_sum
-    #cat("iteration--\n")
-    #cat("--", round(target_sum, 2), "vs", round(actual_sum, 2), "\n")
-    if (actual_sum - target_sum <= 1e-5) break
-  }
-  #cat("got here 5\n")
-  # Making block model
-  cat("constructing block model...\n")
-  
-  if (type == "fast") {
-  
-    # Find relative inter-community weights
-    comm_list <- lapply(clabs, function (L) which(membership == L))
-    dC <- unlist(lapply(comm_list, function (C) sum(degrees[C])))
-    Dmat <- tcrossprod(dC) * P / dT
-    Dmat <- round(Dmat / sum(Dmat) * dT)
-    
-    cat("sum(Dmat) =", sum(Dmat), "\n")
-    
-    # Make number of edges
-    nEdges <- rbinom(1, N^2, sum(Dmat / N^2))
-    
-    cat("nEdges =", nEdges, "\n")
-    
-    # Assigning edges to inter-community relationships
-    Pmat <- Dmat / sum(Dmat)
-    upperTriangle(Pmat) <- upperTriangle(Pmat) * 2
-    lowerTriangle(Pmat) <- 0
-    edgeCounts <- rmultinom(1, nEdges, as.vector(Pmat))
-    edgeCountMat <- matrix(edgeCounts, K, K)
-    upperTriangle(edgeCountMat) <- upperTriangle(edgeCountMat) / 2
-    lowerTriangle(edgeCountMat) <- lowerTriangle(t(edgeCountMat))
-    edgeCountMat <- ceiling(edgeCountMat)
-    
-    # Assigning inter-community edge counts to nodes
-    nodeDegMat <- matrix(0, N, K)
-    for (i1 in 1:K) {
-      nodes1 <- comm_list[[i1]]
-      degs1 <- degrees[nodes1]
-      for (i2 in i1:K) {
-        nodeDegMat[nodes1, i2] <- rmultinom(1, edgeCountMat[i1, i2], degs1)
-      }
-    }
-    
-    # Run within/between-community configuration models
-    edgelist_mats <- rep(list(NULL), K^2)
-    for (i1 in 1:K) {
-      
-      nodes1 <- comm_list[[i1]]
-      
-      for (i2 in i1:K) {
-        
-        elm_indx <- K * (i1 - 1) + i2
-        
-        # Draw nodes node-wise for between-comm
-        if (i2 > i1) {
-          nodes2 <- comm_list[[i2]]
-          node2_input <- unlist(lapply(nodeDegMat[nodes1, i2], function (d) {
-            sample(nodes2, d, replace = FALSE, prob = degrees[nodes2])
+          # Finding maximum degree in each community
+          maxd_C <- unlist(lapply(clabs, function (L) {
+            max(degrees[membership == L])
           }))
-          node1_input <- rep.int(nodes1, times = nodeDegMat[nodes1, i2])
-          edgelist_mats[[elm_indx]] <- cbind(node1_input, node2_input)
+          
+          # Finding 2nd max degree in each community
+          maxd_C2 <- unlist(lapply(clabs, function (L) {
+            tail(sort(degrees[membership == L]), 2)[1]
+          }))
+          
+          # Making max probability mat
+          max_P <- tcrossprod(maxd_C) / dT * P
+          diag(max_P) <- diag(max_P) * maxd_C2 / maxd_C
+          
+          # Assessing the max
+          max_Pnum <- max(max_P)
+          
+          #cat(max_Pnum, "\n")
+          
+          #cat("got here 4.5\n")
+          
+          # Fixing if needed
+          if (max_Pnum > 1) {
+            culprit <- which(max_P == max_Pnum, arr.ind = TRUE)
+            if (length(culprit) == 2) {
+              C1 <- culprit[1]; C2 <- culprit[2]
+            } else {
+              C1 <- culprit[1, 1]; C2 <- culprit[1, 2]
+            }
+            D1 <- degrees[membership == C1]; D2 <- degrees[membership == C2]
+            D1max <- max(D1); D2max <- max(D2)
+            if (D1max >= D2max) {
+              D1[D1 == D1max] <- D1max - 1
+              degrees[membership == C1] <- D1
+            } else {
+              D2[D2 == D2max] <- D2max - 1
+              degrees[membership == C2] <- D2
+            }
+          }
+            
         }
         
-        # Do config model for within-comm
-        if (i2 == i1) {
+      }
+      
+      # Scaling P so that it matches dT
+      target_sum <- sum(degrees)
+      dC <- unlist(lapply(1:K, function (k) sum(degrees[membership == k])))
+      mean_mat <- tcrossprod(dC) / dT * P
+      actual_sum <- sum(mean_mat)
+      P <- P * target_sum / actual_sum
+      #cat("iteration--\n")
+      #cat("--", round(target_sum, 2), "vs", round(actual_sum, 2), "\n")
+      if (actual_sum - target_sum <= 1e-5) break
+    }
+    #cat("got here 5\n")
+    # Making block model
+    cat("constructing block model...\n")
+    
+    if (type == "fast") {
+    
+      # Find relative inter-community weights
+      comm_list <- lapply(clabs, function (L) which(membership == L))
+      dC <- unlist(lapply(comm_list, function (C) sum(degrees[C])))
+      Dmat <- tcrossprod(dC) * P / dT
+      Dmat <- round(Dmat / sum(Dmat) * dT)
+      
+      cat("sum(Dmat) =", sum(Dmat), "\n")
+      
+      # Make number of edges
+      nEdges <- rbinom(1, N^2, sum(Dmat / N^2))
+      
+      cat("nEdges =", nEdges, "\n")
+      
+      # Assigning edges to inter-community relationships
+      Pmat <- Dmat / sum(Dmat)
+      upperTriangle(Pmat) <- upperTriangle(Pmat) * 2
+      lowerTriangle(Pmat) <- 0
+      edgeCounts <- rmultinom(1, nEdges, as.vector(Pmat))
+      edgeCountMat <- matrix(edgeCounts, K, K)
+      upperTriangle(edgeCountMat) <- upperTriangle(edgeCountMat) / 2
+      lowerTriangle(edgeCountMat) <- lowerTriangle(t(edgeCountMat))
+      edgeCountMat <- ceiling(edgeCountMat)
+      
+      # Assigning inter-community edge counts to nodes
+      nodeDegMat <- matrix(0, N, K)
+      for (i1 in 1:K) {
+        nodes1 <- comm_list[[i1]]
+        degs1 <- degrees[nodes1]
+        for (i2 in i1:K) {
+          nodeDegMat[nodes1, i2] <- rmultinom(1, edgeCountMat[i1, i2], degs1)
+        }
+      }
+      
+      # Run within/between-community configuration models
+      edgelist_mats <- rep(list(NULL), K^2)
+      for (i1 in 1:K) {
+        
+        nodes1 <- comm_list[[i1]]
+        
+        for (i2 in i1:K) {
           
-          degs <- nodeDegMat[nodes1, i1]
-          if (sum(degs) %% 2 != 0) {
-            degs[which.max(degs)] <- max(degs) + 1
+          elm_indx <- K * (i1 - 1) + i2
+          
+          # Draw nodes node-wise for between-comm
+          if (i2 > i1) {
+            nodes2 <- comm_list[[i2]]
+            node2_input <- unlist(lapply(nodeDegMat[nodes1, i2], function (d) {
+              sample(nodes2, d, replace = FALSE, prob = degrees[nodes2])
+            }))
+            node1_input <- rep.int(nodes1, times = nodeDegMat[nodes1, i2])
+            edgelist_mats[[elm_indx]] <- cbind(node1_input, node2_input)
           }
-          edge_vec <- sample(rep.int(nodes1, times = degs))
-          edgelist_mats[[elm_indx]] <- matrix(edge_vec, ncol = 2)
+          
+          # Do config model for within-comm
+          if (i2 == i1) {
+            
+            degs <- nodeDegMat[nodes1, i1]
+            if (sum(degs) %% 2 != 0) {
+              degs[which.max(degs)] <- max(degs) + 1
+            }
+            edge_vec <- sample(rep.int(nodes1, times = degs))
+            edgelist_mats[[elm_indx]] <- matrix(edge_vec, ncol = 2)
+            
+          }
           
         }
+        
+      }
+      
+    } else {
+      
+      edgelist_mats <- rep(list(NULL), N - 1)
+      
+      for (u in 1:(N - 1)) {
+        
+        u_nodes <- (u + 1):N
+        Pi <- membership[u_nodes]
+        Pj <- membership[u]
+        comm_p <- P[Pi, Pj]
+        pvec_u <- degrees[u_nodes] * degrees[u] / dT * comm_p
+        if (max(pvec_u) > 1) pvec_u <- pvec_u / max(pvec_u)
+        edges <- u_nodes[which(rbinom(N - u, 1, prob = pvec_u) == 1)]
+        edgelist_mats[[u]] <- cbind(rep(u, length(edges)), edges)
         
       }
       
@@ -306,20 +328,8 @@ DCSBM <- function (param_list, type = "fast",
     
   } else {
     
-    edgelist_mats <- rep(list(NULL), N - 1)
-    
-    for (u in 1:(N - 1)) {
-      
-      u_nodes <- (u + 1):N
-      Pi <- membership[u_nodes]
-      Pj <- membership[u]
-      comm_p <- P[Pi, Pj]
-      pvec_u <- degrees[u_nodes] * degrees[u] / dT * comm_p
-      if (max(pvec_u) > 1) pvec_u <- pvec_u / max(pvec_u)
-      edges <- u_nodes[which(rbinom(N - u, 1, prob = pvec_u) == 1)]
-      edgelist_mats[[u]] <- cbind(rep(u, length(edges)), edges)
-      
-    }
+    probs <- dT * P / sum(P)
+    generate_sbm <- function (membership, probs, out_degs = degrees)
     
   }
   

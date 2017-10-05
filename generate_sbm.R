@@ -1,9 +1,12 @@
-generate_sbm <- function (membership, probs, out_degs = NULL) {
+suppressMessages(library(igraph))
+
+generate_sbm <- function (membership, probs, out_degs = NULL,
+                          python_path = "/usr/bin/python") {
   
   tmp <- tempdir()
   
   # Saving b
-  write.table(membership, quote = FALSE, 
+  write.table(membership - 1, quote = FALSE, 
               row.names = FALSE, col.names = FALSE,
               file = file.path(tmp, "b.dat"))
   
@@ -20,5 +23,10 @@ generate_sbm <- function (membership, probs, out_degs = NULL) {
   }
   
   # Running python script
+  system(paste(python_path, "make_sbm.py", tmp))
   
+  # Reading written graph
+  G <- read.graph(file.path(tmp, "g.gml"), format = "gml")
+  return(get.edgelist(G))
+
 }
