@@ -60,5 +60,15 @@ for (exper in exper_names[to_run]) {
   ggsave(file.path(rootdir, "onmis.png"), op)
   ggsave(file.path(rootdir, "CIBs.png"), cp)
   
+  # Making pairwise ONMI plots
+  non_rmods <- setdiff(levels(timer_plotdf$Var2), "rmodbLouv")
+  for (method in non_rmods) {
+    meth_plotdf <- subset(onmis_plotdf, onmis_plotdf$Var2 %in% c(method, "rmodbLouv"))
+    op <- ggplot(meth_plotdf, aes(x = Var1, y = value, colour = Var2)) + 
+          geom_line() + xlab(pname) + ylab("ONMI") + 
+          ggtitle(paste0(exper, " ONMI")) + ylim(c(0, 1)) +
+          guides(colour = guide_legend(title = "Method"))
+    ggsave(file.path(rootdir, paste0("rmod_vs_", method, ".png")))
+  }
   
 }

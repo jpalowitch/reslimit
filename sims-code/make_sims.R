@@ -8,6 +8,7 @@ to_run <- as.numeric(Args)
 source("sims-code/netfuns.R")
 source("full_dcsbm.R")
 source("igraph_recast.R")
+source("generate_sbm.R")
 # Remake sims or just write scripts?
 remake_sims <- TRUE
 set.seed(12345)
