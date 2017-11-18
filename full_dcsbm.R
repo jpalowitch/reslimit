@@ -42,6 +42,7 @@ make_param_list <- function (N = 5000,
                              max_c = N * 3 / 10,
                              min_c = max_c * 2 / 3,
                              k = round(sqrt(N)),
+                             min_k = NULL,
                              max_k = 3 * k,
                              tau_1 = 2,
                              tau_2 = 1,
@@ -51,6 +52,7 @@ make_param_list <- function (N = 5000,
               "max_c" = max_c,
               "min_c" = min_c,
               "k" = k,
+              "min_k" = min_k,
               "max_k" = max_k,
               "tau_1" = tau_1,
               "tau_2" = tau_2,
@@ -71,6 +73,7 @@ DCSBM <- function (param_list, type = "fast",
   N <- ifelse(is.null(membership), param_list$N, length(membership))
   max_c <- param_list$max_c
   min_c <- param_list$min_c
+  min_k <- param_list$min_k
   k <- ifelse(is.null(membership), param_list$k, nrow(P))
   max_k <- param_list$max_k
   tau_1 <- param_list$tau_1
@@ -154,12 +157,18 @@ DCSBM <- function (param_list, type = "fast",
   
   # Setting degrees
   if (is.null(degrees)) {
-    degrees <- power_law(N, tau_1, max_set = max_k, mean_set = k)
+    if (!is.null(min_k)) {
+      degrees <- power_law(N, tau_1, max_set = max_k, min_set = min_k)
+    } else {
+      degrees <- power_law(N, tau_1, max_set = max_k, mean_set = k)
+    }
   } 
   dT <- sum(degrees)
   
   if (!graph_tool) {
   
+    cat("!graph_tool\n")
+    
     # Fixing degrees step 1
     if (max(degrees) > N) {
       message("adjusting degrees, since max(degrees) > N\n")
@@ -326,15 +335,15 @@ DCSBM <- function (param_list, type = "fast",
       
     }
     
+    edgelist <- do.call(rbind, edgelist_mats)
+    
   } else {
     
     probs <- dT * P / sum(P)
-    generate_sbm <- function (membership, probs, out_degs = degrees)
-    
+    edgelist <- generate_sbm(membership, probs, out_degs = degrees)
   }
   
   # Ordering edgelist
-  edgelist <- do.call(rbind, edgelist_mats)
   unordered <- edgelist[ , 1] > edgelist[ , 2]
   edgelist[unordered, ] <- edgelist[unordered, 2:1]
   edgeid <- (edgelist[ , 1] - 1) * N + edgelist[ , 2]
