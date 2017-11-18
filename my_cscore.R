@@ -1,6 +1,7 @@
 library(Matrix)
 
-my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100) {
+my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100,
+                       return_mean = FALSE) {
   
   if (length(group_s) < 3)
     return(1)
@@ -69,8 +70,11 @@ my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100) {
     }
     
     
-    
-    return(median(cs))
+    if (return_mean) {
+      return(mean(cs))
+    } else {
+      return(median(cs))
+    }
   }
   
   
