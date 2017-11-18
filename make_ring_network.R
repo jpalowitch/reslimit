@@ -15,8 +15,9 @@ make_ring_networks <- function (k, nC = 10, eB = 1) {
   
   G1 <- graph.edgelist(el1, directed = FALSE)
   
-  connections2 <- cbind(rep(pitch_edges, each = k),
-                        rep(catch_edges, k))
+  #connections2 <- cbind(rep(pitch_edges, each = k),
+                        #rep(catch_edges, k))
+  connections2 <- t(combn(pitch_edges, 2))
   el2 <- rbind(el, connections2)
   G2 <- graph.edgelist(el2, directed = FALSE)
   return(list(ring = G1,

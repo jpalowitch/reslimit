@@ -33,7 +33,7 @@ for (exper in exper_names[to_run]) {
   
   for (p in seq_along(ps)) {
     
-    cat("experiment", exper, "p =", p, "\n")
+    cat("doing exper", exper, "which is number", match(exper, exper_names), "p =", p, "\n")
     
     # Setting directory
     curr_dir <- file.path(rootdir, p)
