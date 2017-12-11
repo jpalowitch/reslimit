@@ -1,0 +1,7 @@
+# Making CCME files
+echo Downloading CCME files.
+mkdir CCME
+cd CCME
+wget https://raw.githubusercontent.com/jpalowitch/CCME/master/CCME.R
+wget https://raw.githubusercontent.com/jpalowitch/CCME/master/new_funs.cpp
+cd ../../
