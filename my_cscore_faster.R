@@ -1,7 +1,7 @@
 library(Matrix)
 
-my_cscore <- function (group_s, G, adjG, version = 1, borderp = 0.25, nsims = 100,
-                       return_mean = FALSE) {
+my_cscore2 <- function (group_s, G, adjG, version = 1, borderp = 0.25, nsims = 100,
+                        return_mean = FALSE) {
   
   if (length(group_s) < 3)
     return(1)
@@ -38,16 +38,11 @@ my_cscore <- function (group_s, G, adjG, version = 1, borderp = 0.25, nsims = 10
                         d[group_s], lower.tail = FALSE)
     r_scoresL <- phyper(kints[group_s],     mC_ext_new, mstar_new - mC_ext_new,
                         d[group_s], lower.tail = FALSE)
-    #r_scoresU2 <- phyper(kints[group_sc] - 1, mC_ext, mstar - mC_ext, d[group_sc], 
-    #                     lower.tail = FALSE)
-    #r_scoresL2 <- phyper(kints[group_sc], mC_ext, mstar - mC_ext, d[group_sc], 
-    #                     lower.tail = FALSE)
     
     for (counter in 1:nsims) {
       
       # Getting random r-scores
       rand_rscores <- runif(length(group_s), r_scoresL, r_scoresU)
-      #rand_rscores2 <- runif(length(group_sc), r_scoresL2, r_scoresU2)
       
       if (version == 2) {
         r1 <- sort(rand_rscores, decreasing = TRUE)[1]
@@ -61,17 +56,10 @@ my_cscore <- function (group_s, G, adjG, version = 1, borderp = 0.25, nsims = 10
         scs <- numeric(ntest)
         rscore_sort <- sort(rand_rscores, decreasing=TRUE)
         inv.p <- (1 - rscore_sort[1:ntest]) / (1 - rscore_sort[2:(ntest + 1)])
-        scs <- 1 - inv.p^(N - length(group_s) + j)
-        #for (j in 2:(ntest + 1)) {
-        #  r1 <- sort(rand_rscores, decreasing = TRUE)[j-1]
-        #  r2 <- sort(rand_rscores, decreasing = TRUE)[j]
-        #  logp <- (N - length(group_s) + j) * (log(1 - r1) - log(1 - r2))
-        #  scs[j-1] <- 1 - ((1 - r1) / (1 - r2))^(N - length(group_s) + j)
-        #}
+        scs <- 1 - inv.p^(N - length(group_s) + 2:(ntest + 1))
         cs[counter] <- min(scs) * ntest
+        
       }
-      #plot(-log10(c(r_scoresU2, r_scoresU)), col = c(rep("blue", N - length(group_s)), rep("red", length(group_s))))
-      #plot(-log10(c(rand_rscores2, rand_rscores)), col = c(rep("blue", N - length(group_s)), rep("red", length(group_s))))
     }
     
     

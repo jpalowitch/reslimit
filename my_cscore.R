@@ -1,6 +1,6 @@
 library(Matrix)
 
-my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100,
+my_cscore <- function (group_s, G, adjG, version = 1, borderp = 0.25, nsims = 100,
                        return_mean = FALSE) {
   
   if (length(group_s) < 3)
@@ -11,9 +11,9 @@ my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100,
   N <- length(V(G))
   nodes <- 1:N
   edges <- get.edgelist(G)
-  adj <- get.adjacency(G)
+  #adj <- get.adjacency(G)
   m <- 2 * nrow(edges)
-  kints <- colSums(adj[group_s, ])
+  kints <- colSums(adjG[group_s, ])
   kexts <- d - kints
   mC_int <- sum(kints[group_s])
   mC <- sum(d[group_s])
@@ -45,7 +45,10 @@ my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100,
       r_scoresL2 <- phyper(kints[group_sc], mC_ext, mstar - mC_ext, d[group_sc], 
                            lower.tail = FALSE)
       rand_rscores <- runif(length(group_s), r_scoresL, r_scoresU)
-      rand_rscores2 <- runif(length(group_sc), r_scoresL2, r_scoresU2)
+      if (counter == 5) {
+        cat(head(rand_rscores), "\n")
+      }
+      #rand_rscores2 <- runif(length(group_sc), r_scoresL2, r_scoresU2)
       
       if (version == 2) {
         r1 <- sort(rand_rscores, decreasing = TRUE)[1]
@@ -54,7 +57,6 @@ my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100,
       }
       
       if (version == 3) {
-        
         ntest <- ceiling(length(group_s) * borderp)
         scs <- numeric(ntest)
         for (j in 2:(ntest + 1)) {
@@ -65,8 +67,6 @@ my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100,
         }
         cs[counter] <- min(scs) * ntest
       }
-      #plot(-log10(c(r_scoresU2, r_scoresU)), col = c(rep("blue", N - length(group_s)), rep("red", length(group_s))))
-      #plot(-log10(c(rand_rscores2, rand_rscores)), col = c(rep("blue", N - length(group_s)), rep("red", length(group_s))))
     }
     
     
@@ -127,7 +127,7 @@ my_cscore <- function (group_s, G, version = 1, borderp = 0.25, nsims = 100,
   
   # Re-computing set values
   #tstrength <- sum(degree(G)) / 2
-  kints <- colSums(adj[group_s, ])
+  kints <- colSums(adjG[group_s, ])
   kexts <- d - kints
   mC_int <- sum(kints[group_s])
   mC <- sum(d[group_s])
