@@ -1,18 +1,14 @@
 library(Matrix)
 
-my_cscore2 <- function (group_s, G, adjG, version = 1, borderp = 0.25, nsims = 100,
+my_cscore2 <- function (group_s, G, adjG, edges, d, N, m,
+                        version = 1, borderp = 0.25, nsims = 100,
                         return_mean = FALSE) {
   
   if (length(group_s) < 3)
     return(1)
   
   # Computing basic values
-  d <- degree(G)
-  N <- length(V(G))
   nodes <- 1:N
-  edges <- get.edgelist(G)
-  #adj <- get.adjacency(G)
-  m <- 2 * nrow(edges)
   kints <- colSums(adjG[group_s, ])
   kexts <- d - kints
   mC_int <- sum(kints[group_s])
